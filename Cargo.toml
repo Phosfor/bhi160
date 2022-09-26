@@ -1,6 +1,11 @@
 [package]
 name = "bhi160"
 version = "0.1.0"
+repository = "https://github.com/Phosfor/bhi160"
+license-file = "LICENSE"
+description = "A Rust driver for the Bosch Sensortec BHI160(B) smart sensors"
+keywords = ["embedded-hal", "imu", "sensor"]
+categories = ["embedded"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
