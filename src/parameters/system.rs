@@ -1,0 +1,53 @@
+use modular_bitfield::{bitfield, BitfieldSpecifier};
+
+use super::ParameterPage;
+
+use super::{impl_param, Parameter};
+
+
+#[bitfield(bits = 2)]
+#[derive(Debug, Clone, BitfieldSpecifier)]
+pub struct MetaEvent {
+    pub int_enable: bool,
+    pub enable: bool,
+}
+
+#[bitfield]
+#[derive(Debug, Clone)]
+pub struct MetaEventControl {
+    pub event1: MetaEvent,
+    pub event2: MetaEvent,
+    pub event3: MetaEvent,
+    pub event4: MetaEvent,
+    pub event5: MetaEvent,
+    pub event6: MetaEvent,
+    pub event7: MetaEvent,
+    pub event8: MetaEvent,
+    pub event9: MetaEvent,
+    pub event10: MetaEvent,
+    pub event11: MetaEvent,
+    pub event12: MetaEvent,
+    pub event13: MetaEvent,
+    pub event14: MetaEvent,
+    pub event15: MetaEvent,
+    pub event16: MetaEvent,
+    pub event17: MetaEvent,
+    pub event18: MetaEvent,
+    pub event19: MetaEvent,
+    pub event20: MetaEvent,
+    pub event21: MetaEvent,
+    pub event22: MetaEvent,
+    pub event23: MetaEvent,
+    pub event24: MetaEvent,
+    pub event25: MetaEvent,
+    pub event26: MetaEvent,
+    pub event27: MetaEvent,
+    pub event28: MetaEvent,
+    pub event29: MetaEvent,
+    pub event30: MetaEvent,
+    pub event31: MetaEvent,
+    pub event32: MetaEvent,
+    //TODO: Change this, if this is ever possible: pub events: [MetaEvent; 32],
+}
+
+impl_param!(MetaEventControl, ParameterPage::System, 1, 8, ReadWrite);
