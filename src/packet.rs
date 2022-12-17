@@ -134,6 +134,44 @@ impl<T> Quaternion<T> {
     pub fn set_w(&mut self, w: T) {
         self.s = w;
     }
+
+    pub fn scale<Rhs>(self, rhs: Rhs) -> Quaternion<<T as Mul<Rhs>>::Output>
+    where
+        T: Mul<Rhs>,
+        Rhs: Copy,
+    {
+        Quaternion {
+            v: self.v.scale(rhs),
+            s: self.s * rhs,
+        }
+    }
+
+    pub fn change_elem<Output>(self) -> Quaternion<Output>
+    where
+        Output: From<T>,
+    {
+        Quaternion {
+            v: self.v.change_elem(),
+            s: self.s.into(),
+        }
+    }
+}
+
+impl Quaternion<f32> {
+    pub fn to_euler(self) -> Vector<f32, 3> {
+        let sinr_cosp = 2.0 * (self.w() * self.x() + self.y() * self.z());
+        let cosr_cosp = 1.0 - 2.0 * (self.x() * self.x() + self.y() * self.y());
+        let roll = sinr_cosp.atan2(cosr_cosp);
+
+        let sinp = 2.0 * (self.w() * self.y() - self.z() * self.x());
+        let pitch = sinp.asin();
+
+        let siny_cosp = 2.0 * (self.w() * self.z() + self.x() * self.y());
+        let cosy_cosp = 1.0 - 2.0 * (self.y() * self.y() + self.z() * self.z());
+
+        let yaw = siny_cosp.atan2(cosy_cosp);
+        Vector([roll, pitch, yaw])
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -255,6 +293,70 @@ impl TryFrom<u8> for SensorStatus {
 // }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MetaEvent {
+    /// 1, Sensor Type, -/-
+    FlushComplete(SensorId),
+    /// 2, Sensor Type, -/-
+    SampleRateChanged(SensorId),
+    /// 3, Sensor Type, Power Mode
+    PowerModeChanged(SensorId, u8), //TODO: Power mode
+    /// 4, Error Register, Debug State
+    Error(u8, u8), //TODO Values
+    /// 5-10
+    Reserved,
+    /// 11, Sensor Type, Sensor Status Bits
+    SensorError(SensorId, u8),
+    /// 12, Loss Count LSB, Loss Count MSB
+    FifoOverflow(u16),
+    /// 13, Sensor Type, -/-
+    DynamicRangeChanged(SensorId),
+    /// 14, Bytes Remaining LSB, Bytes Remaining MSB
+    FifoWatermark(u16),
+    /// 15, Sensor Type, Test Result
+    SelfTestResult(SensorId, u8),
+    /// 16, RAM Ver LSB, RAM Ver MSB
+    Initialized(u16),
+}
+
+impl MetaEvent {
+    pub fn from_bytes(bytes: [u8; 3]) -> Option<Self> {
+        match bytes[0] {
+            1 => Some(Self::FlushComplete(SensorId::from_bytes(bytes[1]).ok()?)),
+            2 => Some(Self::SampleRateChanged(
+                SensorId::from_bytes(bytes[1]).ok()?,
+            )),
+            3 => Some(Self::PowerModeChanged(
+                SensorId::from_bytes(bytes[1]).ok()?,
+                bytes[2],
+            )),
+            4 => Some(Self::Error(bytes[1], bytes[2])),
+            5..=10 => Some(Self::Reserved),
+            11 => Some(Self::SensorError(
+                SensorId::from_bytes(bytes[1]).ok()?,
+                bytes[2],
+            )),
+            12 => Some(Self::FifoOverflow(u16::from_le_bytes(
+                bytes[1..=2].try_into().unwrap(),
+            ))),
+            13 => Some(Self::DynamicRangeChanged(
+                SensorId::from_bytes(bytes[1]).ok()?,
+            )),
+            14 => Some(Self::FifoWatermark(u16::from_le_bytes(
+                bytes[1..=2].try_into().unwrap(),
+            ))),
+            15 => Some(Self::SelfTestResult(
+                SensorId::from_bytes(bytes[1]).ok()?,
+                bytes[2],
+            )),
+            16 => Some(Self::Initialized(u16::from_le_bytes(
+                bytes[1..=2].try_into().unwrap(),
+            ))),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SensorData {
     None,
     Event(u8),
@@ -264,7 +366,7 @@ pub enum SensorData {
     QuaternionAccuracy(Quaternion<i16>, i16),
     VectorTimestamp(Vector<i32>, u32),
     Debug([u8; 13]),
-    MetaEvent(u8, u8, u8),
+    MetaEvent(MetaEvent),
 }
 
 impl SensorData {
@@ -315,10 +417,11 @@ impl SensorData {
     }
 
     fn read_metaevent(reader: &mut impl Read) -> Result<Self, std::io::Error> {
-        let event = reader.read_u8()?;
-        let sensor_type = reader.read_u8()?;
-        let data = reader.read_u8()?;
-        Ok(Self::MetaEvent(event, sensor_type, data))
+        let mut bytes = [0; 3];
+        reader.read_exact(&mut bytes)?;
+        Ok(Self::MetaEvent(MetaEvent::from_bytes(bytes).ok_or(
+            std::io::Error::new(std::io::ErrorKind::Other, "Invalid Meta Event"),
+        )?))
     }
 }
 
