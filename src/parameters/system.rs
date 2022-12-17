@@ -51,3 +51,44 @@ pub struct MetaEventControl {
 }
 
 impl_param!(MetaEventControl, ParameterPage::System, 1, 8, ReadWrite);
+
+
+#[derive(Debug, Clone, BitfieldSpecifier)]
+pub enum SensorPowerMode {
+    SensorNotPresent,
+    PowerDown,
+    Suspend,
+    SelfTest,
+    InterruptMotion,
+    OneShot,
+    LowPowerActive,
+    Active,
+}
+#[bitfield]
+#[derive(Debug, Clone, BitfieldSpecifier)]
+pub struct SensorStatus {
+    pub data_available: bool,
+    pub i2c_nack: bool,
+    pub device_id_error: bool,
+    pub transient_error: bool,
+    pub data_lost: bool,
+    pub sensor_power_mode: SensorPowerMode,
+}
+
+#[bitfield]
+#[derive(Debug, Clone)]
+pub struct PhysicalSensorStatus {
+    pub accel_sample_rate: u16,
+    pub accel_dynamic_range: u16,
+    pub accel_flags: SensorStatus,
+
+    pub gyro_sample_rate: u16,
+    pub gyro_dynamic_range: u16,
+    pub gyro_flags: SensorStatus,
+
+    pub mag_sample_rate: u16,
+    pub mag_dynamic_range: u16,
+    pub mag_flags: SensorStatus,
+}
+
+impl_param!(PhysicalSensorStatus, ParameterPage::System, 31, 15, ReadOnly);
