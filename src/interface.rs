@@ -9,7 +9,7 @@ pub const I2C_ADDR2: u8 = 0x29;
 
 pub struct I2c<Inner>
 where
-    Inner: embedded_hal::i2c::blocking::I2c,
+    Inner: embedded_hal::i2c::I2c,
 {
     inner: Inner,
     addr: u8,
@@ -17,7 +17,7 @@ where
 
 impl<Inner> I2c<Inner>
 where
-    Inner: embedded_hal::i2c::blocking::I2c,
+    Inner: embedded_hal::i2c::I2c,
 {
     pub fn new(inner: Inner, addr: u8) -> Self {
         Self { inner, addr }
@@ -34,15 +34,15 @@ where
 
 impl<Inner> Interface for I2c<Inner>
 where
-    Inner: embedded_hal::i2c::blocking::I2c,
+    Inner: embedded_hal::i2c::I2c,
 {
     type Error = Inner::Error;
 
     fn read<'a>(&mut self, addr: u8, buf: &'a mut [u8]) -> Result<(), Self::Error> {
         let addr = [addr];
         let mut operations = [
-            embedded_hal::i2c::blocking::Operation::Write(&addr),
-            embedded_hal::i2c::blocking::Operation::Read(buf),
+            embedded_hal::i2c::Operation::Write(&addr),
+            embedded_hal::i2c::Operation::Read(buf),
         ];
         self.inner.transaction(self.addr, &mut operations)
     }
@@ -50,8 +50,8 @@ where
     fn write(&mut self, addr: u8, buf: &[u8]) -> Result<(), Self::Error> {
         let addr = [addr];
         let mut operations = [
-            embedded_hal::i2c::blocking::Operation::Write(&addr),
-            embedded_hal::i2c::blocking::Operation::Write(buf),
+            embedded_hal::i2c::Operation::Write(&addr),
+            embedded_hal::i2c::Operation::Write(buf),
         ];
         self.inner.transaction(self.addr, &mut operations)
     }
